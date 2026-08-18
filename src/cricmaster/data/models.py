@@ -72,6 +72,8 @@ class MatchMetadata(BaseModel):
     team_type: str | None = None
     balls_per_over: int | None = None
     scheduled_overs: int | None = None
+    team1_players: list[str] | None = None
+    team2_players: list[str] | None = None
 
 
 class InningsState(BaseModel):
@@ -87,6 +89,7 @@ class InningsState(BaseModel):
     overs: float | None = None
     balls: int = 0
     target: int | None = None
+    target_overs: float | None = None
     required_runs: int | None = None
     balls_remaining: int | None = None
     current_run_rate: float | None = None
@@ -115,6 +118,14 @@ class Delivery(BaseModel):
     wicket_type: str | None = None
     player_out: str | None = None
     actual_delivery: str | None = None
+    is_wide: bool = False
+    is_noball: bool = False
+
+    @property
+    def is_legal(self) -> bool:
+        """Wides and no-balls do not count as legal deliveries."""
+
+        return not self.is_wide and not self.is_noball
 
 
 class CurrentPlayers(BaseModel):

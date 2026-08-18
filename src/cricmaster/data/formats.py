@@ -126,3 +126,18 @@ def normalize_match_type(
         return MatchFormat.T20
 
     return MatchFormat.OTHER
+
+
+LIMITED_OVERS_FORMATS = {
+    MatchFormat.ODI,
+    MatchFormat.T20I,
+    MatchFormat.T20,
+    MatchFormat.T10,
+    MatchFormat.HUNDRED,
+    MatchFormat.LIST_A,
+}
+
+UNLIMITED_OVERS_FORMATS = {
+    MatchFormat.TEST,
+    MatchFormat.FIRST_CLASS,
+}

@@ -21,10 +21,13 @@ Build a production-quality pipeline that can:
 | Cricsheet JSON ingestion | Supported now |
 | Format vs competition normalization | Supported now |
 | Historical archive downloader | Supported now |
+| Leakage-safe historical feature pipeline | Supported now |
+| Pre-match feature dataset | Supported now |
+| Limited-overs live-state dataset | Supported now |
 | Live API adapters (CricketData, Sportmonks, EntitySport, Roanuz, ...) | Planned |
 | Search fallback retrieval | Planned (interface only) |
-| Feature engineering and prediction models | Planned |
-| Ball-by-ball live win probability | Planned |
+| Supervised prediction models | Planned |
+| Ball-by-ball live win probability model | Planned |
 | Conversational cricket assistant | Planned |
 
 ## Supported / target cricket formats
@@ -33,14 +36,14 @@ Build a production-quality pipeline that can:
 
 | Format | Meaning | Status |
 | --- | --- | --- |
-| `TEST` | Test cricket | Historical ingestion ready |
-| `ODI` | One-day international | Historical ingestion ready |
-| `T20I` | Twenty20 international | Historical ingestion ready |
-| `T20` | Franchise / domestic T20 | Historical ingestion ready |
-| `T10` | Ten-over cricket | Normalized if source data appears |
-| `HUNDRED` | 100-ball cricket | Historical ingestion ready when Cricsheet event data is present |
-| `FIRST_CLASS` | Multi-day domestic cricket | Historical ingestion ready |
-| `LIST_A` | One-day domestic cricket | Historical ingestion ready |
+| `TEST` | Test cricket | Historical ingestion + pre-match features. Live states planned |
+| `ODI` | One-day international | Historical ingestion, pre-match, live states |
+| `T20I` | Twenty20 international | Historical ingestion, pre-match, live states |
+| `T20` | Franchise / domestic T20 | Historical ingestion, pre-match, live states |
+| `T10` | Ten-over cricket | Pre-match + live states when data appears |
+| `HUNDRED` | 100-ball cricket | Historical ingestion, pre-match, live states (100-ball semantics) |
+| `FIRST_CLASS` | Multi-day domestic cricket | Historical ingestion + pre-match features. Live states planned |
+| `LIST_A` | One-day domestic cricket | Historical ingestion, pre-match, live states |
 | `OTHER` | Unrecognized types | Captured without failing the import |
 
 Example:
@@ -58,7 +61,64 @@ Planned coverage includes Test cricket, ODI, T20I, IPL, TNPL, BBL, PSL, CPL, The
 
 Cricsheet currently publishes ball-by-ball JSON for many of those competitions, including IPL, BBL, PSL, CPL, The Hundred, WPL, WBBL, T20 Blast, and international cricket. **TNPL was not present in the verified Cricsheet catalog** and will need a later API or search fallback.
 
-Do not treat a competition as fully supported until a live provider and prediction path exist for it. Today only historical JSON parsing is implemented.
+Do not treat a competition as fully supported for live prediction until a live provider and trained model exist. Today Cricmaster can ingest history and build training tables. It cannot yet predict match winners.
+
+## Historical feature pipeline
+
+Step 3 builds two datasets from parsed matches, in chronological order:
+
+1. `data/processed/prematch_features.parquet` — team-perspective pre-match rows
+2. `data/processed/live_states.parquet` — one row after each limited-overs delivery
+
+A `build_report.json` records discovered/parsed/skipped matches, exclusion counts, formats, competitions, and validation issues. Generated files are gitignored.
+
+### Leakage prevention
+
+Matches are sorted by date, then `match_id`. For match T the pipeline:
+
+1. computes features from historical state
+2. writes pre-match and live-state rows
+3. only then updates Elo, form, venue, H2H, and player summaries with match T
+
+Features never include that match's result, later matches, future player career totals, or season aggregates computed from the full file. Labels (`team_win`, `eventual_winner`) may use the final result.
+
+Unknown rates are null, not zero. Sample sizes are stored beside rates (`matches_last_5`, `team_matches_at_venue`, ...).
+
+### Pre-match dataset
+
+Each completed win/loss match produces four rows: two teams × `PRE_TOSS` / `POST_TOSS`. Both sides share `match_id` so `temporal_split` can keep them together. Ties, draws, no-results, and abandoned games are excluded and counted, not deleted silently.
+
+Features include format- and gender-specific recent/long-term form, Elo, head-to-head, venue records, optional toss fields, and conservative XI summaries when a lineup is known. If the XI is unknown, player features stay null. Men's and women's sides that share a franchise name (for example The Hundred) are tracked separately.
+
+### Live-state dataset
+
+Limited-overs formats emit a row after every delivery using `legal_balls`, not decimal overs. Wides and no-balls do not increment legal balls. First innings leave `target` and `required_run_rate` null. Chases use `runs_required = target - current_runs` (150 vs 181 → 31). Test and first-class live states are not emitted yet.
+
+Schema details: `docs/feature_schema.md`.
+
+### Feature-building command
+
+```powershell
+python scripts/build_features.py --input data/raw/cricsheet --output data/processed
+```
+
+Optional filters:
+
+```powershell
+python scripts/build_features.py --format T20,T20I --competition IPL --limit 200 --mode both
+```
+
+Future model training should split with `temporal_split` (older matches train, newer validate/test). Random row splits are not the default.
+
+## Current limitations
+
+- No prediction model is trained. There is no accuracy claim.
+- TNPL is not in the verified Cricsheet catalog.
+- Live states omit Test/First-Class innings.
+- Home/away is not inferred.
+- Playing XI features require source lineups; they are not invented.
+- Toss-aware models must use `POST_TOSS` rows only.
+
 
 ## Project structure
 
@@ -77,7 +137,7 @@ Cricmaster/
 │   ├── data/              # models, Cricsheet parser, resolver
 │   ├── live/              # live provider interface + mock
 │   ├── search/            # search fallback interface + stub
-│   ├── features/          # planned
+│   ├── features/          # leakage-safe historical features
 │   ├── models/            # planned
 │   ├── prediction/        # planned
 │   └── chatbot/           # planned

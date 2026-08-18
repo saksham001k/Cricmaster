@@ -114,6 +114,10 @@ def parse_metadata(payload: dict[str, Any], *, match_id: str) -> MatchMetadata:
         except (TypeError, ValueError):
             match_number = None
 
+    players = info.get("players") if isinstance(info.get("players"), dict) else {}
+    team1_players = [str(name) for name in _as_list(players.get(teams[0]))] or None
+    team2_players = [str(name) for name in _as_list(players.get(teams[1]))] or None
+
     return MatchMetadata(
         match_id=match_id,
         format=match_format,
@@ -135,6 +139,8 @@ def parse_metadata(payload: dict[str, Any], *, match_id: str) -> MatchMetadata:
         team_type=str(info["team_type"]) if info.get("team_type") else None,
         balls_per_over=int(balls_per_over) if isinstance(balls_per_over, int) else None,
         scheduled_overs=int(scheduled_overs) if isinstance(scheduled_overs, int) else None,
+        team1_players=team1_players,
+        team2_players=team2_players,
     )
 
 
@@ -157,6 +163,7 @@ def _parse_delivery(
     wickets = _as_list(raw.get("wickets"))
     first_wicket = wickets[0] if wickets and isinstance(wickets[0], dict) else {}
     runs = raw.get("runs") if isinstance(raw.get("runs"), dict) else {}
+    extras = raw.get("extras") if isinstance(raw.get("extras"), dict) else {}
     return Delivery(
         innings=innings_number,
         over=over_number,
@@ -172,6 +179,8 @@ def _parse_delivery(
         wicket_type=str(first_wicket["kind"]) if first_wicket.get("kind") else None,
         player_out=str(first_wicket["player_out"]) if first_wicket.get("player_out") else None,
         actual_delivery=str(raw["actual_delivery"]) if raw.get("actual_delivery") else None,
+        is_wide=bool(extras.get("wides")),
+        is_noball=bool(extras.get("noballs")),
     )
 
 
@@ -215,13 +224,18 @@ def parse_innings(
                 runs += delivery.runs_total
                 if delivery.wicket:
                     wickets += 1
-                extras = raw_delivery.get("extras") if isinstance(raw_delivery.get("extras"), dict) else None
-                if _legal_delivery(extras):
+                if delivery.is_legal:
                     legal_balls += 1
 
         runs += int(penalty.get("post") or 0)
         target_info = raw_innings.get("target") if isinstance(raw_innings.get("target"), dict) else {}
         target = int(target_info["runs"]) if target_info.get("runs") is not None else None
+        target_overs = target_info.get("overs")
+        if target_overs is not None:
+            try:
+                target_overs = float(target_overs)
+            except (TypeError, ValueError):
+                target_overs = None
         overs = _overs_notation(legal_balls, balls_per_over)
         required_runs = (target - runs) if target is not None else None
         run_rate = (runs / legal_balls * balls_per_over) if legal_balls else None
@@ -236,6 +250,7 @@ def parse_innings(
                 overs=overs,
                 balls=legal_balls,
                 target=target,
+                target_overs=target_overs,
                 required_runs=required_runs if required_runs is not None and required_runs > 0 else required_runs,
                 current_run_rate=round(run_rate, 2) if run_rate is not None else None,
                 declared=bool(raw_innings.get("declared")),
@@ -322,3 +337,19 @@ def load_directory(path: str | Path) -> LoadReport:
             errors.append(LoadError(path=str(file_path), reason=f"Unexpected error: {exc}"))
 
     return LoadReport(matches=matches, errors=errors)
+
+
+def discover_match_files(path: str | Path) -> list[Path]:
+    """Return JSON match files under path, sorted by relative path for stability."""
+
+    root = Path(path)
+    if root.is_file() and root.suffix.lower() == ".json":
+        return [root]
+    if not root.is_dir():
+        return []
+    files = [
+        candidate
+        for candidate in root.rglob("*.json")
+        if candidate.name.lower() not in SKIP_FILENAMES
+    ]
+    return sorted(files, key=lambda item: item.as_posix().lower())

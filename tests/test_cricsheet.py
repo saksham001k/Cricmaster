@@ -34,6 +34,10 @@ def test_load_sample_ipl_match() -> None:
     wicket = next(delivery for delivery in match.deliveries if delivery.wicket)
     assert wicket.wicket_type == "bowled"
     assert wicket.player_out == "Ruturaj Gaikwad"
+    wide = next(delivery for delivery in match.deliveries if delivery.is_wide)
+    assert wide.is_legal is False
+    assert match.metadata.team1_players is not None
+    assert "Rohit Sharma" in match.metadata.team1_players
 
 
 def test_malformed_json_raises_parse_error() -> None:

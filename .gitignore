@@ -51,5 +51,8 @@ models/*.joblib
 models/*.pt
 models/*.pth
 
+# Generated datasets
+*.parquet
+
 # Never ignore gitkeep placeholders
 !.gitkeep
