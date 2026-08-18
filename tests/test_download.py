@@ -58,3 +58,9 @@ def test_cli_list_exits_without_network(capsys: pytest.CaptureFixture[str]) -> N
     output = capsys.readouterr().out
     assert "t20s" in output
     assert "ipl_json.zip" in output
+
+def test_expanded_t20_archive_catalog() -> None:
+    assert ARCHIVES["wbb"][0] == "wbb_json.zip"
+    assert ARCHIVES["ilt"][0] == "ilt_json.zip"
+    assert ARCHIVES["sat"][0] == "sat_json.zip"
+    assert ARCHIVES["ssm"][0] == "ssm_json.zip"

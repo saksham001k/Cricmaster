@@ -37,6 +37,7 @@ class BuildReport:
     live_formats_planned: list[str] = field(default_factory=list)
     validation_issues: list[dict[str, Any]] = field(default_factory=list)
     errors: list[dict[str, str]] = field(default_factory=list)
+    live_generation_enabled: bool = True
 
 
 def _peek_date(path: Path) -> tuple[date, str] | None:
@@ -74,6 +75,7 @@ def build_feature_datasets(
     competitions: Iterable[str] | None = None,
     limit: int | None = None,
     modes: Iterable[PredictionMode] | None = None,
+    include_live: bool = True,
 ) -> BuildReport:
     input_path = Path(input_dir)
     output_path = Path(output_dir)
@@ -81,6 +83,7 @@ def build_feature_datasets(
     report = BuildReport(
         live_formats_supported=sorted(str(item) for item in MatchFormat if supports_live_states(item)),
         live_formats_planned=["TEST", "FIRST_CLASS", "OTHER"],
+        live_generation_enabled=include_live,
     )
     files = discover_match_files(input_path)
     report.matches_discovered = len(files)
@@ -131,10 +134,13 @@ def build_feature_datasets(
         else:
             prematch_rows.extend(rows)
 
-        if supports_live_states(match.metadata.format):
-            live_rows.extend(iter_live_states(match))
-        else:
-            report.skipped["live_format_planned"] = report.skipped.get("live_format_planned", 0) + 1
+        if include_live:
+            if supports_live_states(match.metadata.format):
+                live_rows.extend(iter_live_states(match))
+            else:
+                report.skipped["live_format_planned"] = (
+                    report.skipped.get("live_format_planned", 0) + 1
+                )
 
         state.update(match)
 
@@ -152,12 +158,15 @@ def build_feature_datasets(
     report.formats = dict(format_counts)
     report.competitions = dict(competition_counts)
     report.excluded_results = dict(excluded)
-    report.validation_issues = validate_prematch(prematch) + validate_live(live)
+    report.validation_issues = validate_prematch(prematch)
+    if include_live:
+        report.validation_issues += validate_live(live)
 
     prematch_path = output_path / "prematch_features.parquet"
     live_path = output_path / "live_states.parquet"
     prematch.to_parquet(prematch_path, index=False)
-    live.to_parquet(live_path, index=False)
+    if include_live:
+        live.to_parquet(live_path, index=False)
 
     payload = asdict(report)
     payload["generated_at"] = datetime.now().astimezone().isoformat()

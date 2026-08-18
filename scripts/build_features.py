@@ -51,6 +51,14 @@ def main(argv: list[str] | None = None) -> int:
         default="both",
         help="Which toss-availability rows to emit.",
     )
+    parser.add_argument(
+        "--skip-live",
+        action="store_true",
+        help=(
+            "Build only pre/post-toss historical features. "
+            "Do not generate or overwrite live_states.parquet."
+        ),
+    )
     args = parser.parse_args(argv)
     modes = {
         "both": (PredictionMode.PRE_TOSS, PredictionMode.POST_TOSS),
@@ -64,9 +72,14 @@ def main(argv: list[str] | None = None) -> int:
         competitions=_csv_set(args.competitions),
         limit=args.limit,
         modes=modes,
+        include_live=not args.skip_live,
     )
     print(f"parsed={report.matches_parsed} skipped={report.matches_skipped}")
     print(f"prematch_rows={report.prematch_rows} live_state_rows={report.live_state_rows}")
+    print(
+        "live_generation="
+        + ("enabled" if report.live_generation_enabled else "skipped")
+    )
     print(f"formats={report.formats}")
     print(f"excluded={report.excluded_results}")
     print(f"validation_issues={len(report.validation_issues)}")
