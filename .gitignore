@@ -56,3 +56,5 @@ models/*.pth
 
 # Never ignore gitkeep placeholders
 !.gitkeep
+models/**/*.joblib
+models/**/metrics.json
