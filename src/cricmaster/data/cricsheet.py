@@ -161,7 +161,19 @@ def _parse_delivery(
     batting_team: str,
 ) -> Delivery:
     wickets = _as_list(raw.get("wickets"))
-    first_wicket = wickets[0] if wickets and isinstance(wickets[0], dict) else {}
+
+    # Cricsheet records events such as "retired hurt" inside the wickets
+    # array, but they do not reduce the batting side's wickets in hand.
+    non_counting_dismissals = {"retired hurt"}
+    counting_wickets = [
+        item
+        for item in wickets
+        if isinstance(item, dict)
+        and str(item.get("kind") or "").strip().lower()
+        not in non_counting_dismissals
+    ]
+
+    first_wicket = counting_wickets[0] if counting_wickets else {}
     runs = raw.get("runs") if isinstance(raw.get("runs"), dict) else {}
     extras = raw.get("extras") if isinstance(raw.get("extras"), dict) else {}
     return Delivery(
@@ -175,7 +187,7 @@ def _parse_delivery(
         runs_batter=int(runs.get("batter") or 0),
         runs_extras=int(runs.get("extras") or 0),
         runs_total=int(runs.get("total") or 0),
-        wicket=bool(wickets),
+        wicket=bool(counting_wickets),
         wicket_type=str(first_wicket["kind"]) if first_wicket.get("kind") else None,
         player_out=str(first_wicket["player_out"]) if first_wicket.get("player_out") else None,
         actual_delivery=str(raw["actual_delivery"]) if raw.get("actual_delivery") else None,
