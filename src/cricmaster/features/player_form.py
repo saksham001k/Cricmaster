@@ -93,24 +93,53 @@ class PlayerFormBook:
                 "lineup_status": "LINEUP_UNKNOWN",
                 "xi_batters_with_history": None,
                 "xi_mean_batting_average": None,
+                "xi_mean_batting_strike_rate": None,
                 "xi_mean_recent_runs": None,
+                "xi_mean_recent_strike_rate": None,
                 "xi_bowlers_with_history": None,
                 "xi_mean_bowling_economy": None,
+                "xi_mean_recent_bowling_economy": None,
                 "xi_mean_recent_wickets": None,
             }
         batting = [self.batter_snapshot(match_format, player) for player in players]
         bowling = [self.bowler_snapshot(match_format, player) for player in players]
         bat_avgs = [row["average"] for row in batting if row["average"] is not None]
+        strike_rates = [
+            row["strike_rate"] for row in batting if row["strike_rate"] is not None
+        ]
         recent_runs = [row["recent_runs"] for row in batting if row["recent_runs"] is not None]
+        recent_strike_rates = [
+            row["recent_strike_rate"]
+            for row in batting
+            if row["recent_strike_rate"] is not None
+        ]
         economies = [row["economy"] for row in bowling if row["economy"] is not None]
+        recent_economies = [
+            row["recent_economy"]
+            for row in bowling
+            if row["recent_economy"] is not None
+        ]
         recent_wickets = [row["recent_wickets"] for row in bowling if row["recent_wickets"] is not None]
         return {
             "lineup_status": "LINEUP_KNOWN",
             "xi_batters_with_history": len(bat_avgs),
             "xi_mean_batting_average": (sum(bat_avgs) / len(bat_avgs)) if bat_avgs else None,
+            "xi_mean_batting_strike_rate": (
+                sum(strike_rates) / len(strike_rates) if strike_rates else None
+            ),
             "xi_mean_recent_runs": (sum(recent_runs) / len(recent_runs)) if recent_runs else None,
+            "xi_mean_recent_strike_rate": (
+                sum(recent_strike_rates) / len(recent_strike_rates)
+                if recent_strike_rates
+                else None
+            ),
             "xi_bowlers_with_history": len(economies),
             "xi_mean_bowling_economy": (sum(economies) / len(economies)) if economies else None,
+            "xi_mean_recent_bowling_economy": (
+                sum(recent_economies) / len(recent_economies)
+                if recent_economies
+                else None
+            ),
             "xi_mean_recent_wickets": (
                 sum(recent_wickets) / len(recent_wickets) if recent_wickets else None
             ),
