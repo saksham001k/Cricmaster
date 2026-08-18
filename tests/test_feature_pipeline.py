@@ -41,3 +41,30 @@ def test_pipeline_writes_parquet_and_report(tmp_path: Path) -> None:
     assert (output / "build_report.json").exists()
     assert "T20" in report.formats
     assert "IPL" in report.competitions
+
+def test_pipeline_can_skip_live_without_overwriting_existing_live_file(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "raw"
+    source.mkdir()
+    (source / "sample_ipl_match.json").write_text(
+        (FIXTURES / "sample_ipl_match.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    output = tmp_path / "processed"
+    output.mkdir()
+    live_path = output / "live_states.parquet"
+    live_path.write_bytes(b"keep-existing-live-file")
+
+    report = build_feature_datasets(
+        source,
+        output,
+        include_live=False,
+    )
+
+    assert report.live_generation_enabled is False
+    assert report.prematch_rows == 4
+    assert report.live_state_rows == 0
+    assert (output / "prematch_features.parquet").exists()
+    assert live_path.read_bytes() == b"keep-existing-live-file"
