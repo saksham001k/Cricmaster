@@ -33,7 +33,11 @@ def compute_live_metrics(
     """Scoreboard metrics using only information available after this ball."""
 
     bpo = balls_per_over if balls_per_over > 0 else 6
-    balls_remaining = (ball_limit - legal_balls) if ball_limit is not None else None
+    balls_remaining = (
+        max(ball_limit - legal_balls, 0)
+        if ball_limit is not None
+        else None
+    )
     current_rr = rate(runs, legal_balls / bpo) if legal_balls else None
     if target is None:
         runs_required = None
