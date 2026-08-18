@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "data_version": "1.2.0",
+    "created": "2024-01-01",
+    "revision": 1
+  },
+  "info": {
+    "balls_per_over": 6,
+    "dates": ["2024-01-01"],
+    "gender": "male",
+    "match_type": "T20",
+    "outcome": {"result": "no result"},
+    "overs": 20,
+    "players": {},
+    "registry": {"people": {}},
+    "season": "2024",
+    "team_type": "international",
+    "teams": ["Only One Team"],
+    "toss": {"winner": "Only One Team", "decision": "bat"}
+  },
+  "innings": []
+}

@@ -42,6 +42,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
 
 # Trained models
 models/*.pkl

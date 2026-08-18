@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "data_version": "1.2.0",
+    "created": "2024-01-01",
+    "revision": 1
+  },
+  "info": {
+    "balls_per_over": 6,
+    "city": "Mumbai",
+    "dates": ["2024-04-01"],
+    "event": {
+      "name": "Indian Premier League",
+      "match_number": 12
+    },
+    "gender": "male",
+    "match_type": "T20",
+    "outcome": {
+      "winner": "Mumbai Indians",
+      "by": {
+        "wickets": 6
+      }
+    },
+    "overs": 20,
+    "player_of_match": ["Rohit Sharma"],
+    "players": {
+      "Mumbai Indians": ["Rohit Sharma", "Ishan Kishan"],
+      "Chennai Super Kings": ["Ruturaj Gaikwad", "MS Dhoni"]
+    },
+    "registry": {
+      "people": {
+        "Rohit Sharma": "id-1",
+        "Ishan Kishan": "id-2",
+        "Ruturaj Gaikwad": "id-3",
+        "MS Dhoni": "id-4",
+        "DL Chahar": "id-5"
+      }
+    },
+    "season": "2024",
+    "team_type": "club",
+    "teams": ["Mumbai Indians", "Chennai Super Kings"],
+    "toss": {
+      "decision": "bat",
+      "winner": "Chennai Super Kings"
+    },
+    "venue": "Wankhede Stadium"
+  },
+  "innings": [
+    {
+      "team": "Chennai Super Kings",
+      "overs": [
+        {
+          "over": 0,
+          "deliveries": [
+            {
+              "actual_delivery": "0.1",
+              "batter": "Ruturaj Gaikwad",
+              "bowler": "Rohit Sharma",
+              "non_striker": "MS Dhoni",
+              "runs": {
+                "batter": 4,
+                "extras": 0,
+                "total": 4
+              }
+            },
+            {
+              "actual_delivery": "0.2",
+              "batter": "Ruturaj Gaikwad",
+              "bowler": "Rohit Sharma",
+              "non_striker": "MS Dhoni",
+              "runs": {
+                "batter": 0,
+                "extras": 1,
+                "total": 1
+              },
+              "extras": {
+                "wides": 1
+              }
+            },
+            {
+              "actual_delivery": "0.2",
+              "batter": "Ruturaj Gaikwad",
+              "bowler": "Rohit Sharma",
+              "non_striker": "MS Dhoni",
+              "runs": {
+                "batter": 0,
+                "extras": 0,
+                "total": 0
+              },
+              "wickets": [
+                {
+                  "kind": "bowled",
+                  "player_out": "Ruturaj Gaikwad"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "team": "Mumbai Indians",
+      "target": {
+        "overs": 20,
+        "runs": 6
+      },
+      "overs": [
+        {
+          "over": 0,
+          "deliveries": [
+            {
+              "actual_delivery": "0.1",
+              "batter": "Rohit Sharma",
+              "bowler": "DL Chahar",
+              "non_striker": "Ishan Kishan",
+              "runs": {
+                "batter": 6,
+                "extras": 0,
+                "total": 6
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
