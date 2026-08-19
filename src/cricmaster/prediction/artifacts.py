@@ -244,24 +244,75 @@ def extract_leaf_bundle(
     return artifact
 
 
+_BUNDLE_CACHE: dict[tuple[str, int, int, str, str, str | None, int | None], dict[str, Any]] = {}
+
+
+def clear_bundle_cache() -> None:
+    _BUNDLE_CACHE.clear()
+
+
+def resolved_production_artifacts(root: str | Path) -> ProductionArtifacts:
+    """Resolve default artifact locations against a project root."""
+
+    base = Path(root)
+    return ProductionArtifacts(
+        t20i_pre_toss=base / DEFAULT_T20I_PRE_TOSS,
+        t20i_post_toss=base / DEFAULT_T20I_POST_TOSS,
+        t20_pre_toss=base / DEFAULT_T20_PRE_TOSS,
+        t20_post_toss=base / DEFAULT_T20_POST_TOSS,
+        live_first_innings=base / DEFAULT_LIVE_FIRST,
+        live_chase=base / DEFAULT_LIVE_CHASE,
+    )
+
+
+def artifact_availability(artifacts: ProductionArtifacts | None = None) -> dict[str, bool]:
+    """Cheap existence checks. Does not load estimators or historical data."""
+
+    catalog = artifacts or ProductionArtifacts()
+    return {
+        "t20i_pretoss": Path(catalog.t20i_pre_toss).is_file(),
+        "t20i_posttoss": Path(catalog.t20i_post_toss).is_file(),
+        "t20_roster_pretoss": Path(catalog.t20_pre_toss).is_file(),
+        "t20_roster_posttoss": Path(catalog.t20_post_toss).is_file(),
+        "live_first_innings": Path(catalog.live_first_innings).is_file(),
+        "live_chase": Path(catalog.live_chase).is_file(),
+    }
+
+
 def load_production_bundle(route: ProductionRoute) -> dict[str, Any]:
     path = Path(route.artifact_path)
     if not path.is_file():
-        raise ArtifactValidationError(f"Model artifact not found: {path}")
+        raise ArtifactValidationError("Model artifact not found")
+
+    stat = path.stat()
+    cache_key = (
+        str(path.resolve()),
+        int(stat.st_mtime_ns),
+        int(stat.st_size),
+        route.expected_mode,
+        route.expected_domain,
+        route.expected_feature_family,
+        route.innings_number,
+    )
+    cached = _BUNDLE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
 
     artifact = joblib.load(path)
     if not isinstance(artifact, dict):
-        raise ArtifactValidationError(f"Invalid artifact at {path}")
+        raise ArtifactValidationError("Invalid model artifact")
 
     leaf = extract_leaf_bundle(
         artifact,
         expected_mode=route.expected_mode,
         expected_domain=route.expected_domain,
     )
-    return validate_model_bundle(
+    validated = validate_model_bundle(
         leaf,
         expected_mode=route.expected_mode,
         expected_domain=route.expected_domain,
         expected_feature_family=route.expected_feature_family,
         innings_number=route.innings_number,
     )
+    _BUNDLE_CACHE[cache_key] = validated
+    return validated

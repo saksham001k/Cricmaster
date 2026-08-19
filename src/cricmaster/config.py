@@ -10,6 +10,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RAW_DIR = PROJECT_ROOT / "data" / "raw"
 DEFAULT_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 DEFAULT_EXTERNAL_DIR = PROJECT_ROOT / "data" / "external"
+DEFAULT_T20_CORPUS_DIR = DEFAULT_RAW_DIR / "cricsheet" / "t20_corpus"
+DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+)
 
 CRICSHEET_DOWNLOADS_URL = "https://cricsheet.org/downloads/"
 CRICSHEET_JSON_FORMAT_URL = "https://cricsheet.org/format/json/"
@@ -18,6 +25,13 @@ CRICSHEET_JSON_FORMAT_URL = "https://cricsheet.org/format/json/"
 def _optional_env(name: str) -> str | None:
     value = os.environ.get(name, "").strip()
     return value or None
+
+
+def _cors_origins() -> tuple[str, ...]:
+    raw = os.environ.get("CRICMASTER_CORS_ORIGINS", "").strip()
+    if not raw:
+        return DEFAULT_CORS_ORIGINS
+    return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,7 +48,11 @@ class Settings:
     data_raw_dir: Path
     data_processed_dir: Path
     data_external_dir: Path
+    t20_corpus_dir: Path
     cricsheet_downloads_url: str
+    cors_origins: tuple[str, ...]
+    api_host: str
+    api_port: int
 
 
 def load_settings() -> Settings:
@@ -51,8 +69,15 @@ def load_settings() -> Settings:
         data_external_dir=Path(
             os.environ.get("CRICMASTER_EXTERNAL_DIR", DEFAULT_EXTERNAL_DIR)
         ),
+        t20_corpus_dir=Path(
+            os.environ.get("CRICMASTER_T20_CORPUS_DIR", DEFAULT_T20_CORPUS_DIR)
+        ),
         cricsheet_downloads_url=os.environ.get(
             "CRICSHEET_DOWNLOADS_URL", CRICSHEET_DOWNLOADS_URL
         ).rstrip("/")
         + "/",
+        cors_origins=_cors_origins(),
+        api_host=os.environ.get("CRICMASTER_API_HOST", "127.0.0.1").strip()
+        or "127.0.0.1",
+        api_port=int(os.environ.get("CRICMASTER_API_PORT", "8000")),
     )
