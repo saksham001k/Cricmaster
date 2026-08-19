@@ -50,7 +50,7 @@ def _number(value: object) -> float:
     return float(value)
 
 
-def _request_frame(
+def posttoss_feature_frame(
     history: HistoryBuild,
     request: PostTossRequest,
 ) -> pd.DataFrame:
@@ -120,6 +120,13 @@ def _request_frame(
     row["toss_field_advantage"] = sign if decision in {"field", "bowl"} else 0.0
 
     return pd.DataFrame([row], columns=POST_TOSS_FEATURES)
+
+
+def _request_frame(
+    history: HistoryBuild,
+    request: PostTossRequest,
+) -> pd.DataFrame:
+    return posttoss_feature_frame(history, request)
 
 
 def _probability(bundle: dict[str, Any], x: pd.DataFrame) -> float:
