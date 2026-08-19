@@ -11,7 +11,6 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from cricmaster.data.cricsheet import CricsheetParseError, discover_match_files, load_match
 from cricmaster.data.formats import MatchFormat, normalize_competition
 from cricmaster.data.models import MatchMetadata, MatchState
 from cricmaster.data.team_aliases import canonicalize_team
@@ -40,6 +39,10 @@ FEATURE_LABELS = {
     "team_matches_at_venue_diff": "venue experience",
     "team_win_rate_at_venue_diff": "venue win rate",
     "team_elo_before_diff": "Elo rating",
+    "previous_xi_core_batting_recent_runs_diff": "previous-XI core batting runs",
+    "previous_xi_core_batting_recent_strike_rate_diff": "previous-XI core strike rate",
+    "previous_xi_core_bowling_recent_wickets_diff": "previous-XI core wickets",
+    "previous_xi_core_bowling_recent_economy_diff": "previous-XI core economy",
 }
 
 
@@ -109,38 +112,21 @@ def build_historical_state(
 ) -> HistoryBuild:
     """Reconstruct knowledge using only matches strictly before cutoff."""
 
-    state = HistoricalState()
-    matches: list[MatchState] = []
-    parse_errors = 0
-
-    for path in discover_match_files(raw_dir):
-        try:
-            match = load_match(path)
-        except CricsheetParseError:
-            parse_errors += 1
-            continue
-
-        match_date = match.metadata.date
-        if match_date is None or match_date >= cutoff:
-            continue
-        if match.metadata.format not in SUPPORTED_FORMATS:
-            continue
-        matches.append(match)
-
-    matches.sort(
-        key=lambda item: (
-            item.metadata.date or date.min,
-            item.metadata.match_id,
-        )
+    from cricmaster.prediction.history_cache import (
+        load_parsed_t20_matches,
+        matches_strictly_before,
     )
 
+    parsed = load_parsed_t20_matches(raw_dir)
+    state = HistoricalState()
+    matches = matches_strictly_before(parsed, cutoff)
     for match in matches:
         state.update(match)
 
     return HistoryBuild(
         state=state,
         matches_applied=len(matches),
-        parse_errors=parse_errors,
+        parse_errors=parsed.parse_errors,
     )
 
 
